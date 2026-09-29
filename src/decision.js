@@ -16,18 +16,34 @@ const SAFETY_RULES = [
   { action: "CHANGE_SUBSCRIPTION", pattern: /upgrade|downgrade|switch (to|my) (plan|subscription)|abonnement (wijzig|aanpass|omzett)/i },
 ];
 
+// Every text in English and Dutch: the page shows the visitor's language, the
+// fizzl.eu widget reads the English one.
 const STEP = {
-  analyzed: "Intent, language and tone identified.",
-  retrieved: (n) => `${n} matching ${n === 1 ? "policy" : "policies"} retrieved from the knowledge base.`,
-  policyOk: "The proposed actions fit the policies.",
-  policyHuman: "Money or a subscription is involved: a person checks this against the policies.",
-  prepared: "Draft reply prepared for review.",
-  reviewNeeded: "A person must approve before anything is done.",
-  reviewSkipped: "Not needed: low risk and high confidence.",
-  ready: (label) => `${label}: can be prepared automatically.`,
-  approval: (label) => `${label}: waits for approval.`,
-  blocked: (label) => `${label}: blocked until a person approves.`,
+  analyzed: { en: "Intent, language and tone identified.", nl: "Vraag, taal en toon herkend." },
+  retrieved: (n) => ({
+    en: `${n} matching ${n === 1 ? "policy" : "policies"} retrieved from the knowledge base.`,
+    nl: `${n} passende ${n === 1 ? "beleidsregel" : "beleidsregels"} uit de kennisbank gehaald.`,
+  }),
+  policyOk: { en: "The proposed actions fit the policies.", nl: "De voorgestelde acties passen binnen het beleid." },
+  policyHuman: { en: "Money or a subscription is involved: a person checks this against the policies.", nl: "Er gaat het om geld of een abonnement: een mens toetst dit aan het beleid." },
+  prepared: { en: "Draft reply prepared for review.", nl: "Conceptantwoord klaargezet ter controle." },
+  reviewNeeded: { en: "A person must approve before anything is done.", nl: "Een mens moet akkoord geven voordat er iets gebeurt." },
+  reviewSkipped: { en: "Not needed: low risk and high confidence.", nl: "Niet nodig: laag risico en hoge zekerheid." },
+  ready: (a) => ({ en: `${a.label}: can be prepared automatically.`, nl: `${a.labelNl}: kan automatisch worden klaargezet.` }),
+  approval: (a) => ({ en: `${a.label}: waits for approval.`, nl: `${a.labelNl}: wacht op akkoord.` }),
+  blocked: (a) => ({ en: `${a.label}: blocked until a person approves.`, nl: `${a.labelNl}: geblokkeerd tot een mens akkoord geeft.` }),
 };
+
+const REASON = {
+  safety: (a) => ({ en: `Safety rule: the message mentions it, so "${a.label}" is added.`, nl: `Veiligheidsregel: het bericht noemt het, dus "${a.labelNl}" is toegevoegd.` }),
+  high: { en: "High risk: money or a subscription is involved, so execution is blocked until a person approves.", nl: "Hoog risico: er gaat het om geld of een abonnement, dus uitvoeren is geblokkeerd tot een mens akkoord geeft." },
+  medium: { en: "Medium risk: the action changes a customer account, so a person approves it first.", nl: "Gemiddeld risico: de actie wijzigt een klantaccount, dus een mens geeft eerst akkoord." },
+  unsure: (pct) => ({ en: `The AI is not sure enough (${pct}% < ${CONFIDENCE_THRESHOLD * 100}%), so a person reviews the case.`, nl: `De AI is niet zeker genoeg (${pct}% < ${CONFIDENCE_THRESHOLD * 100}%), dus een mens bekijkt de zaak.` }),
+  angry: { en: "The customer is upset: a person reads the reply before it goes out.", nl: "De klant is boos: een mens leest het antwoord voordat het verstuurd wordt." },
+  auto: { en: "Low risk and high confidence: the reply and low-risk actions can be prepared automatically.", nl: "Laag risico en hoge zekerheid: het antwoord en acties met laag risico kunnen automatisch worden klaargezet." },
+};
+
+const step = (fields, text) => ({ ...fields, reason: text.en, reasonNl: text.nl });
 
 export function decide(analysis, message) {
   const reasons = [];
@@ -35,38 +51,43 @@ export function decide(analysis, message) {
   for (const rule of SAFETY_RULES) {
     if (rule.pattern.test(message) && !proposed.includes(rule.action)) {
       proposed.push(rule.action);
-      reasons.push(`Safety rule: the message mentions it, so "${ACTIONS[rule.action].label}" is added.`);
+      reasons.push(REASON.safety(ACTIONS[rule.action]));
     }
   }
 
   const risk = proposed.reduce((max, a) => (RANK[ACTIONS[a].risk] > RANK[max] ? ACTIONS[a].risk : max), "LOW");
   const confidence = Math.min(1, Math.max(0, Number(analysis.confidence) || 0));
 
-  if (risk === "HIGH") reasons.push("High risk: money or a subscription is involved, so execution is blocked until a person approves.");
-  if (risk === "MEDIUM") reasons.push("Medium risk: the action changes a customer account, so a person approves it first.");
-  if (confidence < CONFIDENCE_THRESHOLD) reasons.push(`The AI is not sure enough (${Math.round(confidence * 100)}% < ${CONFIDENCE_THRESHOLD * 100}%), so a person reviews the case.`);
-  if (analysis.sentiment === "angry") reasons.push("The customer is upset: a person reads the reply before it goes out.");
+  if (risk === "HIGH") reasons.push(REASON.high);
+  if (risk === "MEDIUM") reasons.push(REASON.medium);
+  if (confidence < CONFIDENCE_THRESHOLD) reasons.push(REASON.unsure(Math.round(confidence * 100)));
+  if (analysis.sentiment === "angry") reasons.push(REASON.angry);
   const humanRequired = risk !== "LOW" || confidence < CONFIDENCE_THRESHOLD || analysis.sentiment === "angry";
-  if (!humanRequired) reasons.push("Low risk and high confidence: the reply and low-risk actions can be prepared automatically.");
+  if (!humanRequired) reasons.push(REASON.auto);
 
   const policies = POLICIES.filter((p) => analysis.policies.includes(p.id));
   const actionPlan = [
-    { action: "ANALYZE_CASE", status: "COMPLETED", reason: STEP.analyzed },
-    { action: "RETRIEVE_KNOWLEDGE", status: "COMPLETED", reason: STEP.retrieved(policies.length) },
+    step({ action: "ANALYZE_CASE", status: "COMPLETED" }, STEP.analyzed),
+    step({ action: "RETRIEVE_KNOWLEDGE", status: "COMPLETED" }, STEP.retrieved(policies.length)),
     risk === "HIGH"
-      ? { action: "POLICY_CHECK", status: "REQUIRED", risk, reason: STEP.policyHuman }
-      : { action: "POLICY_CHECK", status: "COMPLETED", risk, reason: STEP.policyOk },
-    { action: "PREPARE_RESPONSE", status: "COMPLETED", reason: STEP.prepared },
+      ? step({ action: "POLICY_CHECK", status: "REQUIRED", risk }, STEP.policyHuman)
+      : step({ action: "POLICY_CHECK", status: "COMPLETED", risk }, STEP.policyOk),
+    step({ action: "PREPARE_RESPONSE", status: "COMPLETED" }, STEP.prepared),
     humanRequired
-      ? { action: "HUMAN_REVIEW", status: "REQUIRED", reason: STEP.reviewNeeded }
-      : { action: "HUMAN_REVIEW", status: "COMPLETED", reason: STEP.reviewSkipped },
+      ? step({ action: "HUMAN_REVIEW", status: "REQUIRED" }, STEP.reviewNeeded)
+      : step({ action: "HUMAN_REVIEW", status: "COMPLETED" }, STEP.reviewSkipped),
     ...proposed.map((id) => {
-      const { risk: r, label } = ACTIONS[id];
-      if (r === "HIGH") return { action: "EXECUTE_ACTION", target: id, risk: r, status: "BLOCKED", reason: STEP.blocked(label) };
-      if (r === "MEDIUM" || humanRequired) return { action: "EXECUTE_ACTION", target: id, risk: r, status: "REQUIRED", reason: STEP.approval(label) };
-      return { action: "EXECUTE_ACTION", target: id, risk: r, status: "READY", reason: STEP.ready(label) };
+      const a = ACTIONS[id];
+      const base = { action: "EXECUTE_ACTION", target: id, risk: a.risk };
+      if (a.risk === "HIGH") return step({ ...base, status: "BLOCKED" }, STEP.blocked(a));
+      if (a.risk === "MEDIUM" || humanRequired) return step({ ...base, status: "REQUIRED" }, STEP.approval(a));
+      return step({ ...base, status: "READY" }, STEP.ready(a));
     }),
   ];
 
-  return { decision: { risk, confidence, humanRequired, reasons }, policies, actionPlan };
+  return {
+    decision: { risk, confidence, humanRequired, reasons: reasons.map((r) => r.en), reasonsNl: reasons.map((r) => r.nl) },
+    policies,
+    actionPlan,
+  };
 }

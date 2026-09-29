@@ -18,29 +18,29 @@ export const POLICIES = [
 ];
 
 export const INTENTS = [
-  { id: "cancellation", label: "Cancellation" },
-  { id: "delivery", label: "Delivery complaint" },
-  { id: "billing", label: "Billing or refund" },
-  { id: "price_change", label: "Price change" },
-  { id: "address", label: "Address change" },
-  { id: "login", label: "Login or digital access" },
-  { id: "subscription_change", label: "Subscription change" },
-  { id: "other", label: "Other" },
+  { id: "cancellation", label: "Cancellation", labelNl: "Opzegging" },
+  { id: "delivery", label: "Delivery complaint", labelNl: "Bezorgklacht" },
+  { id: "billing", label: "Billing or refund", labelNl: "Factuur of terugbetaling" },
+  { id: "price_change", label: "Price change", labelNl: "Prijswijziging" },
+  { id: "address", label: "Address change", labelNl: "Adreswijziging" },
+  { id: "login", label: "Login or digital access", labelNl: "Inloggen of digitale toegang" },
+  { id: "subscription_change", label: "Subscription change", labelNl: "Abonnementswijziging" },
+  { id: "other", label: "Other", labelNl: "Overig" },
 ];
 
 // What the agent may propose. The risk of each action is fixed here, in code:
 // the model proposes actions, it never decides how risky they are.
 export const ACTIONS = {
-  SEND_INFORMATION: { risk: "LOW", label: "Send information from the policies" },
-  SEND_PASSWORD_RESET: { risk: "LOW", label: "Send a password reset link" },
-  LOG_DELIVERY_COMPLAINT: { risk: "LOW", label: "Log the delivery complaint" },
-  CREDIT_FREE_DAY: { risk: "MEDIUM", label: "Credit one free day" },
-  UPDATE_ADDRESS: { risk: "MEDIUM", label: "Change the delivery address" },
-  ESCALATE_TO_DELIVERY_PARTNER: { risk: "MEDIUM", label: "Escalate to the delivery partner" },
-  OFFER_RETENTION_DISCOUNT: { risk: "MEDIUM", label: "Offer a retention discount" },
-  ISSUE_REFUND: { risk: "HIGH", label: "Refund a payment" },
-  CANCEL_SUBSCRIPTION: { risk: "HIGH", label: "Cancel the subscription" },
-  CHANGE_SUBSCRIPTION: { risk: "HIGH", label: "Change the subscription" },
+  SEND_INFORMATION: { risk: "LOW", label: "Send information from the policies", labelNl: "Informatie uit het beleid sturen" },
+  SEND_PASSWORD_RESET: { risk: "LOW", label: "Send a password reset link", labelNl: "Een link voor een nieuw wachtwoord sturen" },
+  LOG_DELIVERY_COMPLAINT: { risk: "LOW", label: "Log the delivery complaint", labelNl: "De bezorgklacht registreren" },
+  CREDIT_FREE_DAY: { risk: "MEDIUM", label: "Credit one free day", labelNl: "Eén gratis dag crediteren" },
+  UPDATE_ADDRESS: { risk: "MEDIUM", label: "Change the delivery address", labelNl: "Het bezorgadres wijzigen" },
+  ESCALATE_TO_DELIVERY_PARTNER: { risk: "MEDIUM", label: "Escalate to the delivery partner", labelNl: "Doorzetten naar de bezorgpartner" },
+  OFFER_RETENTION_DISCOUNT: { risk: "MEDIUM", label: "Offer a retention discount", labelNl: "Een behoudkorting aanbieden" },
+  ISSUE_REFUND: { risk: "HIGH", label: "Refund a payment", labelNl: "Een betaling terugstorten" },
+  CANCEL_SUBSCRIPTION: { risk: "HIGH", label: "Cancel the subscription", labelNl: "Het abonnement opzeggen" },
+  CHANGE_SUBSCRIPTION: { risk: "HIGH", label: "Change the subscription", labelNl: "Het abonnement wijzigen" },
 };
 
 export const SAMPLES = [

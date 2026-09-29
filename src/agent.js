@@ -17,6 +17,7 @@ export const ANALYSIS_SCHEMA = {
     intent: { type: "string", enum: INTENTS.map((i) => i.id) },
     language: { type: "string", enum: ["en", "nl"] },
     summary: { type: "string" },
+    summary_nl: { type: "string" },
     sentiment: { type: "string", enum: ["positive", "neutral", "negative", "angry"] },
     urgency: { type: "string", enum: ["low", "normal", "high"] },
     policies: { type: "array", items: { type: "string", enum: POLICIES.map((p) => p.id) } },
@@ -25,7 +26,7 @@ export const ANALYSIS_SCHEMA = {
     open_questions: { type: "array", items: { type: "string" } },
     draft_reply: { type: "string" },
   },
-  required: ["intent", "language", "summary", "sentiment", "urgency", "policies", "proposed_actions", "confidence", "open_questions", "draft_reply"],
+  required: ["intent", "language", "summary", "summary_nl", "sentiment", "urgency", "policies", "proposed_actions", "confidence", "open_questions", "draft_reply"],
   additionalProperties: false,
 };
 
@@ -44,6 +45,7 @@ Return:
 - intent: the best matching intent
 - language: "en" or "nl", the language of the message
 - summary: one sentence, in English, of what the customer wants
+- summary_nl: the same sentence in Dutch
 - sentiment: positive, neutral, negative or angry
 - urgency: low, normal or high
 - policies: the ids of the policies that apply
@@ -102,6 +104,7 @@ export function createAgent({ client = new Anthropic() } = {}) {
         intent: analysis.intent,
         language: analysis.language,
         summary: analysis.summary,
+        summaryNl: analysis.summary_nl,
         sentiment: analysis.sentiment,
         urgency: analysis.urgency,
         openQuestions: analysis.open_questions,

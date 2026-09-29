@@ -13,59 +13,63 @@
 <body>
 <header class="top">
   <a class="brand" href="https://projects.fizzl.eu/">Process<span>Agent</span></a>
-  <span class="pill"><i></i> DEMO · <b id="company">Northwind Daily</b> (fictional) · NOTHING IS EXECUTED</span>
+  <div class="top-right">
+    <span class="pill"><i></i> <span data-i18n="demo">DEMO</span> · <b id="company">Northwind Daily</b> <span data-i18n="fictional">(fictional) · NOTHING IS EXECUTED</span></span>
+    <div class="lang-switch" role="group" aria-label="Language"><button type="button" data-lang="nl" aria-pressed="false">NL</button><button type="button" data-lang="en" aria-pressed="true">EN</button></div>
+  </div>
 </header>
 
 <main>
   <section class="intro">
-    <h1>AI reads the case.<br><em>Rules decide what runs.</em></h1>
-    <p>Paste a customer message. Claude works out what the customer wants and proposes actions. Then fixed rules, not the AI, set the risk: low-risk steps can be prepared automatically, account changes wait for approval, and money or cancellations are blocked until a person says yes.</p>
+    <h1 data-i18n-html="h1">AI reads the case.<br><em>Rules decide what runs.</em></h1>
+    <p data-i18n="intro">Paste a customer message. Claude works out what the customer wants and proposes actions. Then fixed rules, not the AI, set the risk: low-risk steps can be prepared automatically, account changes wait for approval, and money or cancellations are blocked until a person says yes.</p>
   </section>
 
   <section class="desk">
     <form id="form" class="panel">
-      <div class="panel-head"><span>01 / INCOMING CASE</span><div id="samples" class="samples" aria-label="Example cases"></div></div>
-      <label for="message">Customer message</label>
-      <textarea id="message" rows="9" required placeholder="Paste the customer's message here…"></textarea>
-      <button id="go" type="submit">Run the agent →</button>
-      <p class="fine">Demo limit: 10 cases per hour. Don't paste real customer data.</p>
+      <div class="panel-head"><span data-i18n="incoming">01 / INCOMING CASE</span><div id="samples" class="samples" aria-label="Example cases"></div></div>
+      <label for="message" data-i18n="messageLabel">Customer message</label>
+      <textarea id="message" rows="9" required data-i18n-placeholder="messagePlaceholder" placeholder="Paste the customer's message here…"></textarea>
+      <button id="go" type="submit" data-i18n="run">Run the agent →</button>
+      <p class="fine" data-i18n="limit">Demo limit: 10 cases per hour. Don't paste real customer data.</p>
       <div class="rules">
-        <h3>The fixed rules</h3>
+        <h3 data-i18n="rulesTitle">The fixed rules</h3>
         <ul>
-          <li><b class="low">LOW</b> information, reset links, logging: prepared automatically</li>
-          <li><b class="medium">MEDIUM</b> credits, address changes, discounts: a person approves</li>
-          <li><b class="high">HIGH</b> refunds, cancellations, plan changes: blocked until approved</li>
-          <li>AI confidence under <span id="threshold">75</span>% or an upset customer: a person reviews</li>
+          <li><b class="low" data-i18n="LOW">LOW</b> <span data-i18n="ruleLow">information, reset links, logging: prepared automatically</span></li>
+          <li><b class="medium" data-i18n="MEDIUM">MEDIUM</b> <span data-i18n="ruleMedium">credits, address changes, discounts: a person approves</span></li>
+          <li><b class="high" data-i18n="HIGH">HIGH</b> <span data-i18n="ruleHigh">refunds, cancellations, plan changes: blocked until approved</span></li>
+          <li id="ruleReview">AI confidence under 75% or an upset customer: a person reviews</li>
         </ul>
       </div>
     </form>
 
     <section id="out" class="panel" aria-live="polite">
-      <div class="panel-head"><span>02 / DECISION</span><span id="caseId" class="muted"></span></div>
-      <p id="empty" class="empty">The analysis and the decision appear here.</p>
+      <div class="panel-head"><span data-i18n="decisionHead">02 / DECISION</span><span id="caseId" class="muted"></span></div>
+      <p id="empty" class="empty" data-i18n="empty">The analysis and the decision appear here.</p>
       <p id="error" class="error" hidden></p>
       <div id="result" hidden>
         <p id="summary" class="summary"></p>
         <div class="stats">
-          <div><small>INTENT</small><b id="intent"></b></div>
-          <div><small>RISK</small><b id="risk"></b></div>
-          <div><small>CONFIDENCE</small><b id="confidence"></b></div>
-          <div><small>HUMAN</small><b id="human"></b></div>
+          <div><small data-i18n="intent">INTENT</small><b id="intent"></b></div>
+          <div><small data-i18n="risk">RISK</small><b id="risk"></b></div>
+          <div><small data-i18n="confidence">CONFIDENCE</small><b id="confidence"></b></div>
+          <div><small data-i18n="human">HUMAN</small><b id="human"></b></div>
         </div>
         <ol id="steps" class="steps"></ol>
-        <div class="block"><h3>Why</h3><ul id="reasons"></ul></div>
-        <div class="block" id="questionsBlock"><h3>Check first</h3><ul id="questions"></ul></div>
-        <div class="block"><h3>Prepared reply</h3><p id="reply" class="reply"></p></div>
-        <div class="actions"><button id="approve" type="button">Approve as reviewer (simulated)</button><span id="approved" class="fine" hidden>Approved in this demo. Nothing was executed.</span></div>
+        <div class="block"><h3 data-i18n="why">Why</h3><ul id="reasons"></ul></div>
+        <div class="block" id="questionsBlock"><h3 data-i18n="checkFirst">Check first</h3><ul id="questions"></ul></div>
+        <div class="block"><h3 data-i18n="replyTitle">Prepared reply</h3><p id="reply" class="reply"></p></div>
+        <div class="actions"><button id="approve" type="button" data-i18n="approve">Approve as reviewer (simulated)</button><span id="approved" class="fine" hidden data-i18n="approved">Approved in this demo. Nothing was executed.</span></div>
       </div>
     </section>
   </section>
 </main>
 
 <footer>
-  <span>Built by <a href="https://fizzl.eu/">Frits · fizzl.eu</a> with Claude. Northwind Daily and its policies are made up for this demo.</span>
-  <a href="https://github.com/Fizzl13/process-agent">Source on GitHub ↗</a>
+  <span data-i18n-html="footer">Built by <a href="https://fizzl.eu/">Frits · fizzl.eu</a> with Claude. Northwind Daily and its policies are made up for this demo.</span>
+  <a href="https://github.com/Fizzl13/process-agent" data-i18n="source">Source on GitHub ↗</a>
 </footer>
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

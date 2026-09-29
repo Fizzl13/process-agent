@@ -4,20 +4,12 @@ function el(tag, props = {}, ...children) {
   node.append(...children);
   return node;
 }
-let config = { intents: [], samples: [] };
-
-const STEP_TITLES = {
-  ANALYZE_CASE: "Analyse the request",
-  RETRIEVE_KNOWLEDGE: "Retrieve policies",
-  POLICY_CHECK: "Check policies",
-  PREPARE_RESPONSE: "Prepare the reply",
-  HUMAN_REVIEW: "Human review",
-  EXECUTE_ACTION: "Action",
-};
-const STATUS = { COMPLETED: "Done", READY: "Ready", REQUIRED: "Needs a person", BLOCKED: "Blocked", APPROVED: "Approved" };
+let config = { intents: [], samples: [], confidenceThreshold: 0.75 };
+let current = null;
+let approved = false;
 
 function list(ul, items) {
-  ul.replaceChildren(...items.map((t) => el("li", { textContent: t })));
+  ul.replaceChildren(...items.map((text) => el("li", { textContent: text })));
 }
 
 function show(state, message) {
@@ -27,71 +19,85 @@ function show(state, message) {
   if (state === "error") $("error").textContent = message;
 }
 
-function renderSteps(plan) {
+// Everything in the result has an English and a Dutch version, so switching
+// language redraws it without asking the server again.
+function renderResult() {
+  if (!current) return;
+  const { analysis, decision } = current;
+  const nl = lang === "nl";
+  $("caseId").textContent = current.caseId;
+  $("summary").textContent = (nl && analysis.summaryNl) || analysis.summary;
+  const intent = config.intents.find((i) => i.id === analysis.intent);
+  $("intent").textContent = (nl ? intent?.labelNl : intent?.label) ?? analysis.intent;
+  $("risk").textContent = t(decision.risk);
+  $("risk").className = decision.risk.toLowerCase();
+  $("confidence").textContent = `${Math.round(decision.confidence * 100)}%`;
+  $("human").textContent = decision.humanRequired ? t("required") : t("notNeeded");
+  const plan = approved
+    ? current.actionPlan.map((s) => (["REQUIRED", "BLOCKED"].includes(s.status) ? { ...s, status: "APPROVED" } : s))
+    : current.actionPlan;
   $("steps").replaceChildren(...plan.map((s) => el("li", { className: `step ${s.status.toLowerCase()}` },
     el("div", {},
-      el("b", { textContent: STEP_TITLES[s.action] ?? s.action }),
-      el("span", { textContent: s.reason })),
-    el("em", { className: "badge", textContent: STATUS[s.status] ?? s.status }))));
+      el("b", { textContent: t(s.action) }),
+      el("span", { textContent: (nl && s.reasonNl) || s.reason })),
+    el("em", { className: "badge", textContent: t(s.status) }))));
+  list($("reasons"), (nl && decision.reasonsNl) || decision.reasons);
+  $("questionsBlock").hidden = !analysis.openQuestions.length;
+  list($("questions"), analysis.openQuestions);
+  $("reply").textContent = current.draftReply;
+  $("approve").hidden = !decision.humanRequired || approved;
+  $("approved").hidden = !approved;
 }
 
-let current = null;
+function renderStatic() {
+  $("ruleReview").textContent = t("ruleReview")(Math.round(config.confidenceThreshold * 100));
+  $("samples").replaceChildren(...config.samples.map((s) => {
+    const b = el("button", { type: "button", textContent: `${s.language.toUpperCase()} · ${s.label}` });
+    b.addEventListener("click", () => { $("message").value = s.text; $("message").focus(); });
+    return b;
+  }));
+  if (!$("go").disabled) $("go").textContent = t("run");
+  renderResult();
+}
 
 $("form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const go = $("go");
   go.disabled = true;
-  go.textContent = "Running…";
+  go.textContent = t("running");
   try {
     const res = await fetch("/api/process-case", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ message: $("message").value }),
     });
-    const data = await res.json().catch(() => ({ error: "Unexpected answer from the server." }));
-    if (!res.ok) return show("error", data.error || "Something went wrong.");
+    const data = await res.json().catch(() => ({ error: t("unexpected") }));
+    if (!res.ok) return show("error", data.error || t("failed"));
     current = data;
-    const { analysis, decision } = data;
-    $("caseId").textContent = data.caseId;
-    $("summary").textContent = analysis.summary;
-    $("intent").textContent = config.intents.find((i) => i.id === analysis.intent)?.label ?? analysis.intent;
-    $("risk").textContent = decision.risk;
-    $("risk").className = decision.risk.toLowerCase();
-    $("confidence").textContent = `${Math.round(decision.confidence * 100)}%`;
-    $("human").textContent = decision.humanRequired ? "Required" : "Not needed";
-    renderSteps(data.actionPlan);
-    list($("reasons"), decision.reasons);
-    $("questionsBlock").hidden = !analysis.openQuestions.length;
-    list($("questions"), analysis.openQuestions);
-    $("reply").textContent = data.draftReply;
-    $("approve").hidden = !decision.humanRequired;
-    $("approved").hidden = true;
+    approved = false;
+    renderResult();
     show("result");
     if (matchMedia("(max-width: 900px)").matches) $("out").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch {
-    show("error", "Could not reach the agent. Check your connection.");
+    show("error", t("offline"));
   } finally {
     go.disabled = false;
-    go.textContent = "Run the agent →";
+    go.textContent = t("run");
   }
 });
 
 // Only in the browser: the demo never executes anything, it just shows what
 // approval would unlock.
 $("approve").addEventListener("click", () => {
-  if (!current) return;
-  renderSteps(current.actionPlan.map((s) => (["REQUIRED", "BLOCKED"].includes(s.status) ? { ...s, status: "APPROVED" } : s)));
-  $("approve").hidden = true;
-  $("approved").hidden = false;
+  approved = true;
+  renderResult();
 });
+
+document.addEventListener("langchange", renderStatic);
+applyLang();
 
 (async () => {
   config = await (await fetch("/api/config")).json();
   $("company").textContent = config.company;
-  $("threshold").textContent = Math.round(config.confidenceThreshold * 100);
-  for (const s of config.samples) {
-    const b = el("button", { type: "button", textContent: `${s.language.toUpperCase()} · ${s.label}` });
-    b.addEventListener("click", () => { $("message").value = s.text; $("message").focus(); });
-    $("samples").append(b);
-  }
+  renderStatic();
 })();

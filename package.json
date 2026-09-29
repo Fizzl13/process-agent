@@ -1,0 +1,19 @@
+{
+  "name": "process-agent",
+  "version": "1.0.0",
+  "description": "Process Agent: AI analyses a customer case, fixed rules decide what may run and what a human must approve",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --env-file-if-exists=.env --watch server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.129.0",
+    "express": "^5.2.1"
+  }
+}

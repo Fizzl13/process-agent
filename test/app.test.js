@@ -18,7 +18,7 @@ async function serve(app) {
 }
 
 const analysis = (over = {}) => ({
-  intent: "login", language: "en", summary: "Can't log in.", sentiment: "neutral", urgency: "normal",
+  intent: "login", language: "en", summary: "Can't log in.", summary_nl: "Kan niet inloggen.", sentiment: "neutral", urgency: "normal",
   policies: ["login"], proposed_actions: ["SEND_PASSWORD_RESET"], confidence: 0.92, open_questions: [], draft_reply: "Dear [customer name], …",
   ...over,
 });
@@ -52,6 +52,8 @@ test("decision: the safety rules add a refund or cancellation the analysis misse
   assert.equal(nl.decision.risk, "HIGH");
   assert.ok(step(nl.actionPlan, "EXECUTE_ACTION", "ISSUE_REFUND"));
   assert.match(nl.decision.reasons[0], /Safety rule/);
+  assert.match(nl.decision.reasonsNl[0], /Veiligheidsregel: .*"Een betaling terugstorten"/);
+  assert.match(step(nl.actionPlan, "EXECUTE_ACTION", "ISSUE_REFUND").reasonNl, /geblokkeerd/);
   const en = decide(analysis({ proposed_actions: [] }), "Please cancel my subscription");
   assert.equal(step(en.actionPlan, "EXECUTE_ACTION", "CANCEL_SUBSCRIPTION").status, "BLOCKED");
 });
@@ -91,6 +93,7 @@ test("agent: Opus 5.5 at low effort, structured output, server-side fallback, ca
   assert.equal(result.executed, false);
   assert.equal(result.decision.risk, "LOW");
   assert.equal(result.draftReply, "Dear [customer name], …");
+  assert.equal(result.analysis.summaryNl, "Kan niet inloggen.");
 });
 
 test("agent: refusal, cut-off JSON and API errors become clear messages", async () => {
